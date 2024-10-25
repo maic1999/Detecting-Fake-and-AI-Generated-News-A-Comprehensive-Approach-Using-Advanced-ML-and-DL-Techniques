@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Integrity-Guard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+            position: relative;
+        }
+        h1 {
+            color: #444;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            font-size: 16px;
+            color: #666;
+        }
+        input[type="text"] {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            width: calc(100% - 24px);
+            font-size: 16px;
+            margin-top: 10px;
+            transition: border-color 0.3s ease;
+        }
+        input[type="text"]:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+        input[type="submit"], button {
+            padding: 12px 25px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+        }
+        input[type="submit"]:hover, button:hover {
+            background-color: #45a049;
+        }
+        p {
+            margin-top: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        .feedback {
+            margin-top: 20px;
+        }
+        .feedback label {
+            font-size: 14px;
+            color: #666;
+            margin-right: 10px;
+        }
+        .feedback div {
+            display: inline-block;
+            margin-right: 20px;
+        }
+        .feedback input[type="radio"] {
+            margin-right: 5px;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .select-label {
+            margin-top: 20px;
+            display: none;
+        }
+        select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Integrity-Guard</h1>
+        <form method="post" id="news-form">
+            <label for="news_title">
+                <i class="fas fa-newspaper"></i> Enter a news title:
+            </label>
+            <input type="text" id="news_title" name="news_title" required>
+            <input type="submit" value="Classify">
+        </form>
+        <div class="loader"></div>
+        {% if prediction %}
+        <p>Prediction: {{ prediction }}</p>
+        <div class="feedback">
+            <label>Is the prediction correct?</label>
+            <div>
+                <input type="radio" id="correct" name="correct" value="true" checked>
+                <label for="correct">Yes</label>
+            </div>
+            <div>
+                <input type="radio" id="incorrect" name="correct" value="false">
+                <label for="incorrect">No</label>
+            </div>
+        </div>
+        <div id="label-select" class="select-label">
+            <label for="label-select-input">Select the correct label:</label>
+            <select id="label-select-input" name="label">
+                <option value="" disabled selected>Select a label</option>
+                <option value="Fake News">Fake News</option>
+                <option value="Real News">Real News</option>
+                <option value="AI-Generated News">AI-Generated News</option>
+            </select>
+            <button id="feedback-submit" type="button">Submit Feedback</button>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        const form = document.getElementById('news-form');
+        const loader = document.querySelector('.loader');
+        const correctRadio = document.getElementById('correct');
+        const incorrectRadio = document.getElementById('incorrect');
+        const labelSelect = document.getElementById('label-select');
+        const feedbackSubmit = document.getElementById('feedback-submit');
+
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            loader.style.display = 'block';
+
+            setTimeout(function() {
+                form.submit();
+            }, 2000);
+        });
+
+        incorrectRadio.addEventListener('change', function() {
+            if (incorrectRadio.checked) {
+                labelSelect.style.display = 'block';
+            }
+        });
+
+        correctRadio.addEventListener('change', function() {
+            if (correctRadio.checked) {
+                labelSelect.style.display = 'none';
+            }
+        });
+
+        feedbackSubmit.addEventListener('click', function() {
+            const selectedLabel = document.getElementById('label-select-input').value;
+            if (!selectedLabel) {
+                alert('Please select a label before submitting.');
+                return;
+            }
+            const feedbackForm = document.createElement('form');
+            feedbackForm.method = 'POST';
+            feedbackForm.action = '/feedback';
+            
+            const newsTitleInput = document.createElement('input');
+            newsTitleInput.type = 'hidden';
+            newsTitleInput.name = 'news_title';
+            newsTitleInput.value = '{{ news_title }}';
+            feedbackForm.appendChild(newsTitleInput);
+
+            const correctInput = document.createElement('input');
+            correctInput.type = 'hidden';
+            correctInput.name = 'correct';
+            correctInput.value = 'false';
+            feedbackForm.appendChild(correctInput);
+
+            const labelInput = document.createElement('input');
+            labelInput.type = 'hidden';
+            labelInput.name = 'label';
+            labelInput.value = selectedLabel;
+            feedbackForm.appendChild(labelInput);
+
+            document.body.appendChild(feedbackForm);
+            feedbackForm.submit();
+        });
+    </script>
+</body>
+</html>
